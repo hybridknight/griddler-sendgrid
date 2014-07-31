@@ -3,6 +3,7 @@ module Griddler
     class Adapter
       def initialize(params)
         @params = params
+        encode_params
       end
 
       def self.normalize_params(params)
@@ -20,7 +21,7 @@ module Griddler
 
       private
 
-      attr_reader :params
+      attr_reader :params, :charsets
 
       def recipients(key)
         ( params[key] || '' ).split(',')
@@ -33,6 +34,28 @@ module Griddler
         attachment_count.times.map do |index|
           params.delete("attachment#{index + 1}".to_sym)
         end
+      end
+
+      def encode_params
+        begin
+          @charsets = JSON.parse(params['charsets'])
+        rescue
+          @charsets = {}
+        end
+        params = encode_field('text')
+        params = encode_field('html')
+        params
+      end
+
+      def encode_field(name)
+        if params[name]
+          if charsets[name]
+            params[name] = params[name].force_encoding(charsets[name]).encode('UTF-8')
+          else
+            params[name] = params[name].encode('UTF-8')
+          end
+        end
+        params
       end
     end
   end
